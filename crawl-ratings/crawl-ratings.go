@@ -14,8 +14,8 @@ import (
 func main() {
 
 	// Only process users in certain range to avoid request limit
-	beginIndex := 100
-	endIndex := 200
+	beginIndex := 500
+	endIndex := 1500
 
 	//***********************************
 	frating, err := os.Create(fmt.Sprintf("rating%d-%d.csv", beginIndex, endIndex))
@@ -26,11 +26,15 @@ func main() {
 	defer frating.Close()
 	frating.WriteString("UserID, MovieID, Rating \n")
 
+	// Store error link in file to process later
+	// frating, err := os.Create("error-links.txt")
 	//********************************************************
 	// Instantiate default collector
 	c := colly.NewCollector(
 		colly.AllowedDomains("www.imdb.com", "imdb.com"),
 		colly.Async(true),
+		colly.MaxDepth(10),
+		colly.AllowURLRevisit(),
 	)
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  ".*imdb.*",
@@ -92,7 +96,9 @@ func main() {
 	})
 	ratingCollector.OnError(func(r *colly.Response, err error) {
 		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		fmt.Println("*")
 		time.Sleep(10 * time.Second)
+		fmt.Println("*****")
 		ratingCollector.Visit(r.Request.URL.String())
 	})
 
