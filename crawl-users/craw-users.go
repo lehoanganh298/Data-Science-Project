@@ -19,9 +19,9 @@ func main() {
 	//************************************
 	// Load user list  if available
 	f, err := os.OpenFile("users.txt",
-		os.O_APPEND|os.O_CREATE|os.O_RDONLY, 0644)
+		os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 	}
 	defer f.Close()
 	// Add user list to userSet
@@ -41,18 +41,22 @@ func main() {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		colly.AllowedDomains("www.imdb.com", "imdb.com"),
-		colly.Async(true),
+		colly.AllowURLRevisit(),
+		// colly.Async(true),
 	)
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  ".*imdb.*",
-		Parallelism: 10,
-		Delay:       3 * time.Second,
+		// Parallelism: 10,
+		// Delay:       1 * time.Second,
 	})
 
 	// Create more collector
 	movieCollector := c.Clone()
 	userCollector := c.Clone()
 	qualifiedUserCollector := c.Clone()
+	movieCollector.SetRequestTimeout(100 * time.Second)
+	userCollector.SetRequestTimeout(100 * time.Second)
+	qualifiedUserCollector.SetRequestTimeout(100 * time.Second)
 	movieCount := 0
 	userCount := 0
 
@@ -68,7 +72,7 @@ func main() {
 		userCollector.Visit(fmt.Sprintf("https://www.imdb.com/title/%s/reviews", titleID))
 	})
 	movieCollector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		fmt.Println("MovieCollector Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err.Error())
 		// time.Sleep(1 * time.Second)
 		// userCollector.Visit(r.Request.URL.String())
 	})
@@ -105,7 +109,7 @@ func main() {
 		userCollector.Visit(rURL.String())
 	})
 	userCollector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		fmt.Println("UserCollector Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err.Error())
 		// time.Sleep(1 * time.Second)
 		// userCollector.Visit(r.Request.URL.String())
 	})
@@ -116,7 +120,7 @@ func main() {
 		reviewCountStr := strings.ReplaceAll(e.Text, ",", "")
 		reviewCount, err := strconv.Atoi(reviewCountStr)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err.Error())
 			fmt.Println("cannot find number of review in URL: ", e.Request.URL)
 			return
 		}
@@ -135,9 +139,14 @@ func main() {
 			userCount++
 			_, err := f.WriteString(fmt.Sprintln(userID))
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println(err.Error())
 			}
 		}
+	})
+	qualifiedUserCollector.OnError(func(r *colly.Response, err error) {
+		fmt.Println("QualifiedUserCollector Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err.Error())
+		// time.Sleep(1 * time.Second)
+		// userCollector.Visit(r.Request.URL.String())
 	})
 
 	movieCollector.Visit("https://www.imdb.com/chart/top")
