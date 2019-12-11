@@ -27,23 +27,20 @@ func main() {
 	frating.WriteString("UserID, MovieID, Rating \n")
 
 	// Store error link in file to process later
-	// frating, err := os.Create("error-links.txt")
 	//********************************************************
 	// Instantiate default collector
-	c := colly.NewCollector(
+	ratingCollector := colly.NewCollector(
 		colly.AllowedDomains("www.imdb.com", "imdb.com"),
 		colly.Async(true),
-		colly.MaxDepth(10),
 		colly.AllowURLRevisit(),
 	)
-	c.Limit(&colly.LimitRule{
+	ratingCollector.Limit(&colly.LimitRule{
 		DomainGlob:  ".*imdb.*",
 		Parallelism: 10,
 		Delay:       1 * time.Second,
 	})
+	ratingCollector.SetRequestTimeout(60*time.Second)
 
-	// Create more collector
-	ratingCollector := c.Clone()
 	ratingCount := 0
 	userCount := 0
 	doneUserCount := 0 //Count number of user reach the last review page (checking for completeness)
@@ -95,10 +92,13 @@ func main() {
 		}
 	})
 	ratingCollector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-		fmt.Println("*")
-		time.Sleep(10 * time.Second)
-		fmt.Println("*****")
+		fmt.Println("Request URL:", r.Request.URL, "\nError:", err.Error())
+		if r.StatusCode == 503 {
+			time.Sleep(3 * time.Minute)
+		} else {
+			time.Sleep(30*time.Second)
+		}
+		fmt.Print("*")
 		ratingCollector.Visit(r.Request.URL.String())
 	})
 
