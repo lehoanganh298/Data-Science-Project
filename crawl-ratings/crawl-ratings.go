@@ -92,8 +92,8 @@ func main() {
 	})
 	ratingCollector.OnError(func(r *colly.Response, err error) {
 		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-		// time.Sleep(1 * time.Second)
-		// userCollector.Visit(r.Request.URL.String())
+		time.Sleep(10 * time.Second)
+		ratingCollector.Visit(r.Request.URL.String())
 	})
 
 	//************************************
