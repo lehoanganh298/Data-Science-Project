@@ -13,7 +13,7 @@ import (
 	"github.com/gocolly/colly"
 )
 
-const minReviewsPerUser = 100
+const minReviewsPerUser = 300
 
 func main() {
 	//************************************
