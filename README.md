@@ -7,3 +7,8 @@
 
 ## Crawl rating
 * From user list in users.txt, go to each user page and crawl all rating from this user.
+
+## Modeling
+* Content-based recommender system
+* Neighbor-based colaborative filtering
+* Matrix factorization colaborative filtering
